@@ -36,19 +36,28 @@ export default async function handler(req, res) {
     ? Array.isArray(files['files[]']) ? files['files[]'] : [files['files[]']]
     : [];
 
-  const uploadedUrls = (await Promise.all(
+  const uploadResults = await Promise.all(
     uploadedFiles.map((file) =>
       cloudinary.uploader.upload(file.filepath, {
         resource_type: 'auto',
         folder: 'roofing-leads',
-      }).then((result) => result.secure_url).catch(() => null)
+      }).then((result) => ({ url: result.secure_url, error: null }))
+        .catch((err) => ({ url: null, error: err.message || 'Upload failed' }))
     )
-  )).filter(Boolean);
+  );
+
+  const uploadedUrls = uploadResults.filter(r => r.url).map(r => r.url);
+  const uploadErrors = uploadResults.filter(r => r.error).map(r => r.error);
 
   // Build WhatsApp message
-  const photoLines = uploadedUrls.length > 0
-    ? uploadedUrls.map((url, i) => `📸 Photo ${i + 1}: ${url}`).join('\n')
-    : '📸 No photos uploaded';
+  let photoLines;
+  if (uploadedUrls.length > 0) {
+    photoLines = uploadedUrls.map((url, i) => `📸 Photo ${i + 1}: ${url}`).join('\n');
+  } else if (uploadedFiles.length > 0) {
+    photoLines = `📸 ${uploadedFiles.length} photo(s) failed to upload: ${uploadErrors[0]}`;
+  } else {
+    photoLines = '📸 No photos uploaded';
+  }
 
   const waMessage = encodeURIComponent(
     `🔔 *New Lead*\n\n` +
