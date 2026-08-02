@@ -59,10 +59,14 @@ export default async function handler(req, res) {
     photoLines = 'No photos uploaded';
   }
 
+  const cleanPhone = phone.replace(/\s+/g, '').replace(/^0/, '44');
+  const waLink = `https://wa.me/${cleanPhone}`;
+
   const waMessage = encodeURIComponent(
     `🔔 *New Lead*\n\n` +
     `*Name:* ${name}\n` +
     `*Phone:* ${phone}\n` +
+    `*WhatsApp:* ${waLink}\n` +
     `*Postcode:* ${postcode}\n` +
     `*Job:* ${jobType}\n` +
     `*Notes:* ${description}\n` +
