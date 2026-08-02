@@ -125,6 +125,17 @@
     bubble.classList.remove("hidden");
   });
 
+  // Resize chat window when keyboard opens on mobile
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (window.innerWidth <= 420 && isOpen) {
+        win.style.height = window.visualViewport.height + 'px';
+        win.style.top = window.visualViewport.offsetTop + 'px';
+        scrollBottom();
+      }
+    });
+  }
+
   // ── HELPERS ───────────────────────────────────────────────────────────────
   function scrollBottom() {
     messagesEl.scrollTop = messagesEl.scrollHeight;

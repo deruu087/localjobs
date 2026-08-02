@@ -335,7 +335,7 @@
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s;
@@ -502,12 +502,15 @@
 /* Mobile */
 @media (max-width: 420px) {
   #chat-window {
+    position: fixed;
     right: 0;
     left: 0;
     bottom: 0;
+    top: 0;
     width: 100%;
-    border-radius: 20px 20px 0 0;
-    max-height: 85vh;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
   }
 
   #chat-bubble {
