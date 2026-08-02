@@ -52,20 +52,20 @@ export default async function handler(req, res) {
   // Build WhatsApp message
   let photoLines;
   if (uploadedUrls.length > 0) {
-    photoLines = uploadedUrls.map((url, i) => `📸 Photo ${i + 1}: ${url}`).join('\n');
+    photoLines = uploadedUrls.map((url, i) => `Photo ${i + 1}: ${url}`).join('\n');
   } else if (uploadedFiles.length > 0) {
-    photoLines = `📸 ${uploadedFiles.length} photo(s) failed to upload: ${uploadErrors[0]}`;
+    photoLines = `${uploadedFiles.length} photo(s) failed to upload: ${uploadErrors[0]}`;
   } else {
-    photoLines = '📸 No photos uploaded';
+    photoLines = 'No photos uploaded';
   }
 
   const waMessage = encodeURIComponent(
     `🔔 *New Lead*\n\n` +
-    `👤 *Name:* ${name}\n` +
-    `📞 *Phone:* ${phone}\n` +
-    `📍 *Postcode:* ${postcode}\n` +
-    `🏠 *Job:* ${jobType}\n` +
-    `📝 *Notes:* ${description}\n` +
+    `*Name:* ${name}\n` +
+    `*Phone:* ${phone}\n` +
+    `*Postcode:* ${postcode}\n` +
+    `*Job:* ${jobType}\n` +
+    `*Notes:* ${description}\n` +
     `${photoLines}\n\n` +
     `Reply ASAP! ⚡`
   );
