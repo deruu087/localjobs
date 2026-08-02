@@ -37,24 +37,25 @@ export default async function handler(req, res) {
     : [];
 
   const uploadResults = await Promise.all(
-    uploadedFiles.map((file) =>
-      cloudinary.uploader.upload(file.filepath, {
+    uploadedFiles.map((file) => {
+      const isVideo = (file.mimetype || '').startsWith('video/');
+      return cloudinary.uploader.upload(file.filepath, {
         resource_type: 'auto',
         folder: 'roofing-leads',
-      }).then((result) => ({ url: result.secure_url, error: null }))
-        .catch((err) => ({ url: null, error: err.message || 'Upload failed' }))
-    )
+      }).then((result) => ({ url: result.secure_url, isVideo, error: null }))
+        .catch((err) => ({ url: null, isVideo, error: err.message || 'Upload failed' }));
+    })
   );
 
-  const uploadedUrls = uploadResults.filter(r => r.url).map(r => r.url);
+  const succeeded = uploadResults.filter(r => r.url);
   const uploadErrors = uploadResults.filter(r => r.error).map(r => r.error);
 
   // Build WhatsApp message
   let photoLines;
-  if (uploadedUrls.length > 0) {
-    photoLines = uploadedUrls.map((url, i) => `Photo ${i + 1}: ${url}`).join('\n');
+  if (succeeded.length > 0) {
+    photoLines = succeeded.map((r, i) => `${r.isVideo ? 'Video' : 'Photo'} ${i + 1}: ${r.url}`).join('\n');
   } else if (uploadedFiles.length > 0) {
-    photoLines = `${uploadedFiles.length} photo(s) failed to upload: ${uploadErrors[0]}`;
+    photoLines = `${uploadedFiles.length} file(s) failed to upload: ${uploadErrors[0]}`;
   } else {
     photoLines = 'No photos uploaded';
   }
