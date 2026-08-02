@@ -1,0 +1,9 @@
+{
+  "name": "blue-collar-template",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "formidable": "^3.5.1",
+    "resend": "^3.2.0"
+  }
+}
