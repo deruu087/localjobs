@@ -34,6 +34,8 @@
   }
 }
 
+#chat-bubble.hidden { display: none !important; }
+
 #chat-bubble:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 28px rgba(249, 115, 22, 0.75);

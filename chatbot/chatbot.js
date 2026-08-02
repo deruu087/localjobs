@@ -2,7 +2,7 @@
   // ── CONFIG (set per client) ──────────────────────────────────────────────
   const CONFIG = {
     businessName: "ProRoof UK",
-    replyTime: "within 1 hour",
+    replyTime: "ASAP",
     backendUrl: "/api/send",
   };
 
@@ -112,6 +112,7 @@
   bubble.addEventListener("click", () => {
     isOpen = !isOpen;
     win.classList.toggle("open", isOpen);
+    bubble.classList.toggle("hidden", isOpen);
     dismissPopup();
     if (isOpen && currentStep === 0 && messagesEl.children.length === 0) {
       setTimeout(() => runStep(0), 300);
@@ -121,11 +122,13 @@
   document.getElementById("chat-close-btn").addEventListener("click", () => {
     isOpen = false;
     win.classList.remove("open");
+    bubble.classList.remove("hidden");
   });
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
   function scrollBottom() {
     messagesEl.scrollTop = messagesEl.scrollHeight;
+    messagesEl.lastElementChild?.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }
 
   function addBotMsg(text, delay = 0) {
