@@ -109,29 +109,42 @@
   });
 
   // ── OPEN / CLOSE ─────────────────────────────────────────────────────────
-  bubble.addEventListener("click", () => {
-    isOpen = !isOpen;
-    win.classList.toggle("open", isOpen);
-    bubble.classList.toggle("hidden", isOpen);
+  const isMobile = () => window.innerWidth <= 420;
+
+  function openChat() {
+    isOpen = true;
+    win.classList.add("open");
+    bubble.classList.add("hidden");
     dismissPopup();
-    if (isOpen && currentStep === 0 && messagesEl.children.length === 0) {
+    if (isMobile()) document.body.classList.add("chat-open");
+    if (currentStep === 0 && messagesEl.children.length === 0) {
       setTimeout(() => runStep(0), 300);
     }
-  });
+  }
 
-  document.getElementById("chat-close-btn").addEventListener("click", () => {
+  function closeChat() {
     isOpen = false;
     win.classList.remove("open");
     bubble.classList.remove("hidden");
+    document.body.classList.remove("chat-open");
+    win.style.height = '';
+    win.style.top = '';
+  }
+
+  bubble.addEventListener("click", () => {
+    isOpen ? closeChat() : openChat();
+    dismissPopup();
   });
+
+  document.getElementById("chat-close-btn").addEventListener("click", closeChat);
 
   // Resize chat window when keyboard opens on mobile
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
-      if (window.innerWidth <= 420 && isOpen) {
+      if (isMobile() && isOpen) {
         win.style.height = window.visualViewport.height + 'px';
         win.style.top = window.visualViewport.offsetTop + 'px';
-        scrollBottom();
+        setTimeout(scrollBottom, 100);
       }
     });
   }
