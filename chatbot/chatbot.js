@@ -80,20 +80,26 @@
       <span class="chat-close" id="chat-close-btn">✕</span>
     </div>
     <div class="chat-messages" id="chat-messages"></div>
-    <div class="chat-input-area" id="chat-input-area" style="display:none;"></div>
+    <div class="chat-input-area" id="chat-input-area" style="display:none;">
+      <input id="chat-text-input" type="text" placeholder="" autocomplete="off" />
+      <button class="chat-send-btn" id="chat-send-btn">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
   `;
 
   document.body.appendChild(popup);
   document.body.appendChild(bubble);
   document.body.appendChild(win);
 
-  const messagesEl = document.getElementById("chat-messages");
-  const inputArea = document.getElementById("chat-input-area");
+  const messagesEl   = document.getElementById("chat-messages");
+  const inputArea    = document.getElementById("chat-input-area");
+  const textInput    = document.getElementById("chat-text-input");
+  const sendBtn      = document.getElementById("chat-send-btn");
 
   // ── PROACTIVE POPUP LOGIC ─────────────────────────────────────────────────
   const dismissPopup = () => popup.classList.remove("visible");
 
-  // Show after 4 seconds if chat hasn't been opened
   setTimeout(() => {
     if (!isOpen) popup.classList.add("visible");
   }, 1500);
@@ -129,6 +135,7 @@
     document.body.classList.remove("chat-open");
     win.style.height = '';
     win.style.top = '';
+    textInput.blur();
   }
 
   bubble.addEventListener("click", () => {
@@ -157,7 +164,6 @@
 
   function addBotMsg(text, delay = 0) {
     return new Promise((resolve) => {
-      // Show typing
       const typing = document.createElement("div");
       typing.className = "msg bot typing";
       typing.innerHTML = `<div class="msg-bubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
@@ -204,18 +210,29 @@
     }
 
     const step = STEPS[index];
+
+    // Hide input while bot is typing (keeps keyboard open if already focused)
+    setInputDisabled(true);
+
     await addBotMsg(step.botMessage, 200);
 
-    inputArea.style.display = "none";
-    inputArea.innerHTML = "";
-
     if (step.type === "options") {
+      inputArea.style.display = "none";
+      textInput.blur();
       showOptions(step.options);
     } else if (step.type === "upload") {
+      inputArea.style.display = "none";
+      textInput.blur();
       showUpload();
     } else {
       showTextInput(step.type, step.placeholder);
     }
+  }
+
+  function setInputDisabled(disabled) {
+    textInput.disabled = disabled;
+    sendBtn.disabled = disabled;
+    sendBtn.style.opacity = disabled ? "0.4" : "1";
   }
 
   // ── OPTIONS ───────────────────────────────────────────────────────────────
@@ -241,35 +258,28 @@
 
   // ── TEXT INPUT ────────────────────────────────────────────────────────────
   function showTextInput(type, placeholder) {
-    const input = document.createElement("input");
-    input.type = type;
-    input.placeholder = placeholder || "";
-
-    const btn = document.createElement("button");
-    btn.className = "chat-send-btn";
-    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`;
-
-    const submit = () => {
-      const val = input.value.trim();
-      if (!val) return;
-      addUserMsg(val);
-      answers[STEPS[currentStep].id] = val;
-      inputArea.style.display = "none";
-      inputArea.innerHTML = "";
-      currentStep++;
-      runStep(currentStep);
-    };
-
-    btn.addEventListener("click", submit);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") submit();
-    });
-
-    inputArea.appendChild(input);
-    inputArea.appendChild(btn);
+    textInput.type = type;
+    textInput.placeholder = placeholder || "";
+    textInput.value = "";
     inputArea.style.display = "flex";
-    input.focus();
+    setInputDisabled(false);
+    textInput.focus();
   }
+
+  function submitText() {
+    const val = textInput.value.trim();
+    if (!val || textInput.disabled) return;
+    addUserMsg(val);
+    answers[STEPS[currentStep].id] = val;
+    textInput.value = "";
+    currentStep++;
+    runStep(currentStep);
+  }
+
+  sendBtn.addEventListener("click", submitText);
+  textInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitText();
+  });
 
   // ── FILE UPLOAD ───────────────────────────────────────────────────────────
   function showUpload() {
@@ -322,8 +332,8 @@
         cont.addEventListener("click", proceedFromUpload);
         skipWrap.before(cont);
       } else if (document.getElementById("upload-continue")) {
-        const cont = document.getElementById("upload-continue");
-        cont.textContent = `Continue with ${uploadedFiles.length} file${uploadedFiles.length > 1 ? "s" : ""}`;
+        document.getElementById("upload-continue").textContent =
+          `Continue with ${uploadedFiles.length} file${uploadedFiles.length > 1 ? "s" : ""}`;
       }
     });
 
@@ -347,9 +357,11 @@
 
   // ── SUBMIT ────────────────────────────────────────────────────────────────
   async function submitLead() {
+    inputArea.style.display = "none";
+    textInput.blur();
+
     await addBotMsg(`Perfect, thanks **${answers.name}**! 🎉\n\nWe'll be in touch ${CONFIG.replyTime}. Keep an eye on your phone!`, 200);
 
-    // Show success
     setTimeout(() => {
       const success = document.createElement("div");
       success.className = "success-msg";
@@ -362,7 +374,6 @@
       scrollBottom();
     }, 1400);
 
-    // Send to backend
     const formData = new FormData();
     Object.entries(answers).forEach(([k, v]) => formData.append(k, v));
     uploadedFiles.forEach((file) => formData.append("files[]", file));
