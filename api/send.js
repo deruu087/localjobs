@@ -36,14 +36,14 @@ export default async function handler(req, res) {
     ? Array.isArray(files['files[]']) ? files['files[]'] : [files['files[]']]
     : [];
 
-  const uploadedUrls = await Promise.all(
+  const uploadedUrls = (await Promise.all(
     uploadedFiles.map((file) =>
       cloudinary.uploader.upload(file.filepath, {
         resource_type: 'auto',
         folder: 'roofing-leads',
-      }).then((result) => result.secure_url)
+      }).then((result) => result.secure_url).catch(() => null)
     )
-  );
+  )).filter(Boolean);
 
   // Build WhatsApp message
   const photoLines = uploadedUrls.length > 0
