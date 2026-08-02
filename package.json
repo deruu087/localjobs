@@ -1,9 +1,9 @@
 {
-  "name": "blue-collar-template",
+  "name": "blue-collar-roofing",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "formidable": "^3.5.1",
-    "resend": "^3.2.0"
+    "cloudinary": "^2.5.1",
+    "formidable": "^3.5.1"
   }
 }

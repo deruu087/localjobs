@@ -1,17 +1,19 @@
-import { Resend } from "resend";
-import { IncomingForm } from "formidable";
-import fs from "fs";
+import { v2 as cloudinary } from 'cloudinary';
+import { IncomingForm } from 'formidable';
 
 export const config = { api: { bodyParser: false } };
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ── PARSE MULTIPART FORM ─────────────────────────────────────────────────
   const form = new IncomingForm({ multiples: true, maxFileSize: 50 * 1024 * 1024 });
 
   const { fields, files } = await new Promise((resolve, reject) => {
@@ -21,45 +23,33 @@ export default async function handler(req, res) {
     });
   });
 
-  const get = (key) => (Array.isArray(fields[key]) ? fields[key][0] : fields[key]) ?? "Not provided";
+  const get = (key) => (Array.isArray(fields[key]) ? fields[key][0] : fields[key]) ?? 'Not provided';
 
-  const jobType    = get("job_type");
-  const description = get("description");
-  const name       = get("name");
-  const phone      = get("phone");
-  const postcode   = get("postcode");
+  const jobType     = get('job_type');
+  const description = get('description');
+  const name        = get('name');
+  const phone       = get('phone');
+  const postcode    = get('postcode');
 
-  // ── COLLECT UPLOADED FILES ───────────────────────────────────────────────
-  const uploadedFiles = files["files[]"]
-    ? Array.isArray(files["files[]"]) ? files["files[]"] : [files["files[]"]]
+  // Upload files to Cloudinary
+  const uploadedFiles = files['files[]']
+    ? Array.isArray(files['files[]']) ? files['files[]'] : [files['files[]']]
     : [];
 
-  const attachments = uploadedFiles.map((file) => ({
-    filename: file.originalFilename || "upload",
-    content: fs.readFileSync(file.filepath).toString("base64"),
-  }));
+  const uploadedUrls = await Promise.all(
+    uploadedFiles.map((file) =>
+      cloudinary.uploader.upload(file.filepath, {
+        resource_type: 'auto',
+        folder: 'roofing-leads',
+      }).then((result) => result.secure_url)
+    )
+  );
 
-  // ── SEND EMAIL VIA RESEND ─────────────────────────────────────────────────
-  await resend.emails.send({
-    from:    process.env.EMAIL_FROM,   // e.g. leads@yoursite.com (verified domain)
-    to:      process.env.EMAIL_TO,     // roofer's email
-    subject: `New Lead: ${name} — ${jobType} in ${postcode}`,
-    text: `
-New lead from your website!
+  // Build WhatsApp message
+  const photoLines = uploadedUrls.length > 0
+    ? uploadedUrls.map((url, i) => `📸 Photo ${i + 1}: ${url}`).join('\n')
+    : '📸 No photos uploaded';
 
-Name:        ${name}
-Phone:       ${phone}
-Postcode:    ${postcode}
-Job Type:    ${jobType}
-Description: ${description}
-Files:       ${attachments.length} attached
-
-Call them back ASAP!
-    `.trim(),
-    attachments,
-  });
-
-  // ── WHATSAPP NOTIFICATION (CallMeBot) ────────────────────────────────────
   const waMessage = encodeURIComponent(
     `🔔 *New Lead*\n\n` +
     `👤 *Name:* ${name}\n` +
@@ -67,13 +57,13 @@ Call them back ASAP!
     `📍 *Postcode:* ${postcode}\n` +
     `🏠 *Job:* ${jobType}\n` +
     `📝 *Notes:* ${description}\n` +
-    `📸 *Files:* ${attachments.length} (see email)\n\n` +
+    `${photoLines}\n\n` +
     `Reply ASAP! ⚡`
   );
 
   const waUrl = `https://api.callmebot.com/whatsapp.php?phone=${process.env.WA_PHONE}&text=${waMessage}&apikey=${process.env.WA_APIKEY}`;
 
-  await fetch(waUrl).catch(() => {}); // fire and forget — don't fail the request if WA is down
+  await fetch(waUrl).catch(() => {});
 
-  return res.status(200).json({ success: true, files: attachments.length });
+  return res.status(200).json({ success: true, files: uploadedUrls.length });
 }
